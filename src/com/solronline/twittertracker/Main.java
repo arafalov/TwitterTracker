@@ -32,28 +32,17 @@ public class Main {
      * @param args - working directory, file to store raw tweets, search string
      */
     public static void main(String[] args) throws IOException {
-        Path workingPath = null;
-        Path rawTweetsPath = null;
-        String searchQuery = null;
-
-
-        //FIX: rawTweetsPath is relative to working path, not the other way around
-        switch(args.length) {
-            case 2:
-                searchQuery = args[1];
-            case 1:
-                workingPath = Paths.get(args[0]).toAbsolutePath().normalize();
-                break;
-            case 0:
-                workingPath = Paths.get(".").toAbsolutePath().normalize();
-                break;
-            default:
-                System.err.println("Unknown command line params starting from: " + args[3]);
-                System.exit(-1);
+        if (args.length > 2) {
+            System.err.println("Usage: java ...Main [workingdir] [searchQuery]");
+            System.exit(-1);
         }
 
+        Path workingPath = Paths.get((args.length>=1)?args[0]:".").toAbsolutePath().normalize();
+        String searchQuery = (args.length==2)?args[1]:null;
+        Path rawTweetsPath = workingPath.resolve("rawtweets.json");
+
+
         System.out.println("Tracking tweets using files in the directory: " + workingPath);
-        rawTweetsPath = workingPath.resolve("rawtweets.json");
 
 
         long lastID;
@@ -242,12 +231,16 @@ public class Main {
 
     private static void writeSkipped(BufferedWriter skippedTweetsWriter, long tweetID, String format, String... params) throws IOException {
         skippedTweetsWriter.write(String.format("%s %d:", DATE_FORMAT.format(new Date()), tweetID));
-        skippedTweetsWriter.write(String.format(format, params));
+        skippedTweetsWriter.write(String.format(format, (Object[])params)); //cast, so it knows it is params array
         skippedTweetsWriter.newLine();
     }
 
     private static List<Status> getStoredTweets(Path rawTweetsPath, long lastID) {
         LinkedList<Status> tweets = new LinkedList<>();
+        if (Files.notExists(rawTweetsPath)) {
+            System.err.println("Did not find raw tweets on the filesystem: " + rawTweetsPath.toString());
+            return tweets; //empty
+        }
         try {
             List<String> rawJSON = Files.readAllLines(rawTweetsPath);
             for (String rawTweet : rawJSON) {
