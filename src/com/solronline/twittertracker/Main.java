@@ -16,15 +16,15 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Main {
+
+    private static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * If the search string is not provided, tweets are loaded from the raw tweets file
@@ -128,14 +128,14 @@ public class Main {
 
             //Skip tweet if it is a retweet
             if (tweet.isRetweet()) {
-                skippedTweetsWriter.write(String.format("%d: retweet\n", tweetID));
+                writeSkipped(skippedTweetsWriter, tweetID, "retweet");
                 continue processTweets;
             }
 
             //Skip tweet if it is from an excluded handle
             String screenName = tweet.getUser().getScreenName();
             if (excludedHandles.contains(screenName.toLowerCase())) {
-                skippedTweetsWriter.write(String.format("%d: exclude due to handle '%s'\n", tweetID, screenName));
+                writeSkipped(skippedTweetsWriter, tweetID, "exclude due to handle '%s'", screenName);
                 continue processTweets;
             }
 
@@ -143,7 +143,7 @@ public class Main {
             for (UserMentionEntity userMentionEntity : tweet.getUserMentionEntities()) {
                 String mentionName = userMentionEntity.getScreenName();
                 if (excludedHandles.contains(mentionName.toLowerCase())) {
-                    skippedTweetsWriter.write(String.format("%d: exclude due to mention '%s'\n", tweetID, mentionName));
+                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to mention '%s'", mentionName);
                     continue processTweets;
                 }
             }
@@ -154,7 +154,7 @@ public class Main {
 
                 Matcher matcher = includeTermsRegex.matcher(tweetText);
                 if (!matcher.find()) {
-                    skippedTweetsWriter.write(String.format("%d: exclude due to missing required terms\n", tweetID));
+                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to missing required terms");
                     continue processTweets;
                 }
             }
@@ -162,7 +162,7 @@ public class Main {
             if (excludeTermsRegex != null) {
                 Matcher matcher = excludeTermsRegex.matcher(tweetText);
                 if (matcher.find()) {
-                    skippedTweetsWriter.write(String.format("%d: exclude due to forbidded term: '%s'\n", tweetID, matcher.group()));
+                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to forbidded term: '%s'", matcher.group());
                     continue processTweets;
                 }
             }
@@ -178,7 +178,7 @@ public class Main {
                 HttpGet httpget = new HttpGet(initialURL);
                 String initialHostName = URIUtils.extractHost(URI.create(initialURL)).getHostName();
                 if (excludedHosts.contains(initialHostName)) { //don't even bother trying to resolve
-                    skippedTweetsWriter.write(String.format("%d: exclude due to target host (initial) '%s'\n", tweetID, initialHostName));
+                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to target host (initial) '%s'", initialHostName);
                     continue; //maybe another URL will work out, which will end up with same ID in both skipped and final URLs
                 }
 
@@ -197,7 +197,7 @@ public class Main {
 
                     String hostName = URIUtils.extractHost(location).getHostName();
                     if (excludedHosts.contains(hostName)) {
-                        skippedTweetsWriter.write(String.format("%d: exclude due to target host '%s'\n", tweetID, hostName));
+                        writeSkipped(skippedTweetsWriter, tweetID, "exclude due to target host '%s'", hostName);
                         continue; //maybe another URL will work out, which will end up with same ID in both skipped and final URLs
                     }
 
@@ -215,7 +215,8 @@ public class Main {
                     System.out.println();
                     acceptedTweetsWriter.write(
                             String.format(
-                                    "%s\t%d\t@%s\t%s\n",
+                                    "%s %s\t%d\t@%s\t%s\n",
+                                    DATE_FORMAT.format(new Date()),
                                     location, tweetID, screenName, tweet.getText().replaceAll("\n", "    ")
                             ));
                 } catch (URISyntaxException e) {
@@ -237,6 +238,12 @@ public class Main {
         }
 
         System.out.println("We are DONE!");
+    }
+
+    private static void writeSkipped(BufferedWriter skippedTweetsWriter, long tweetID, String format, String... params) throws IOException {
+        skippedTweetsWriter.write(String.format("%s %d:", DATE_FORMAT.format(new Date()), tweetID));
+        skippedTweetsWriter.write(String.format(format, params));
+        skippedTweetsWriter.newLine();
     }
 
     private static List<Status> getStoredTweets(Path rawTweetsPath, long lastID) {
