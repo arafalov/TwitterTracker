@@ -33,7 +33,7 @@ public class Main {
      */
     public static void main(String[] args) throws IOException {
         if (args.length > 2) {
-            System.err.println("Usage: java ...Main [workingdir] [searchQuery]");
+            System.err.println("Usage: java -jar TwitterTracker.jar [workingdir] [searchQuery]");
             System.exit(-1);
         }
 
@@ -176,11 +176,11 @@ public class Main {
                     HttpHost target = context.getTargetHost();
                     List<URI> redirectLocations = context.getRedirectLocations();
                     URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
-                    if (redirectLocations != null) {
-                        for (URI redirectLocation : redirectLocations) {
-                            System.out.println("  redir: " + redirectLocation.toASCIIString());
-                        }
-                    }
+//                    if (redirectLocations != null) {
+//                        for (URI redirectLocation : redirectLocations) {
+//                            System.out.println("  redir: " + redirectLocation.toASCIIString());
+//                        }
+//                    }
                     System.out.println("  final: " + location.toASCIIString());
                     System.out.println();
 
@@ -275,6 +275,7 @@ public class Main {
 
             getTweets:
             do {
+                System.out.println("Running twitter search");
                 result = twitter.search(query);
                 List<Status> receivedTweets = result.getTweets();
                 for (Status receivedTweet : receivedTweets) {
