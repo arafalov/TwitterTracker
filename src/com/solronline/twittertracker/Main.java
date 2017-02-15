@@ -119,14 +119,14 @@ public class Main {
 
             //Skip tweet if it is a retweet
             if (tweet.isRetweet()) {
-                writeSkipped(skippedTweetsWriter, tweetID, "retweet");
+                writeSkipped(skippedTweetsWriter, tweet, "retweet");
                 continue processTweets;
             }
 
             //Skip tweet if it is from an excluded handle
             String screenName = tweet.getUser().getScreenName();
             if (excludedHandles.contains(screenName.toLowerCase())) {
-                writeSkipped(skippedTweetsWriter, tweetID, "exclude due to handle '%s'", screenName);
+                writeSkipped(skippedTweetsWriter, tweet, "exclude due to handle '%s'", screenName);
                 continue processTweets;
             }
 
@@ -134,7 +134,7 @@ public class Main {
             for (UserMentionEntity userMentionEntity : tweet.getUserMentionEntities()) {
                 String mentionName = userMentionEntity.getScreenName();
                 if (excludedHandles.contains(mentionName.toLowerCase())) {
-                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to mention '%s'", mentionName);
+                    writeSkipped(skippedTweetsWriter, tweet, "exclude due to mention '%s'", mentionName);
                     continue processTweets;
                 }
             }
@@ -145,7 +145,7 @@ public class Main {
 
                 Matcher matcher = includeTermsRegex.matcher(tweetText);
                 if (!matcher.find()) {
-                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to missing required terms");
+                    writeSkipped(skippedTweetsWriter, tweet, "exclude due to missing required terms");
                     continue processTweets;
                 }
             }
@@ -153,7 +153,7 @@ public class Main {
             if (excludeTermsRegex != null) {
                 Matcher matcher = excludeTermsRegex.matcher(tweetText);
                 if (matcher.find()) {
-                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to forbidded term: '%s'", matcher.group());
+                    writeSkipped(skippedTweetsWriter, tweet, "exclude due to forbidded term: '%s'", matcher.group());
                     continue processTweets;
                 }
             }
@@ -169,7 +169,7 @@ public class Main {
                 HttpGet httpget = new HttpGet(initialURL);
                 String initialHostName = URIUtils.extractHost(URI.create(initialURL)).getHostName();
                 if (excludedHosts.contains(initialHostName)) { //don't even bother trying to resolve
-                    writeSkipped(skippedTweetsWriter, tweetID, "exclude due to target host (initial) '%s'", initialHostName);
+                    writeSkipped(skippedTweetsWriter, tweet, "exclude due to target host (initial) '%s'", initialHostName);
                     continue; //maybe another URL will work out, which will end up with same ID in both skipped and final URLs
                 }
 
@@ -188,7 +188,7 @@ public class Main {
 
                     String hostName = URIUtils.extractHost(location).getHostName();
                     if (excludedHosts.contains(hostName)) {
-                        writeSkipped(skippedTweetsWriter, tweetID, "exclude due to target host '%s'", hostName);
+                        writeSkipped(skippedTweetsWriter, tweet, "exclude due to target host '%s'", hostName);
                         continue; //maybe another URL will work out, which will end up with same ID in both skipped and final URLs
                     }
 
@@ -208,7 +208,7 @@ public class Main {
                             String.format(
                                     "%s %s\t%d\t@%s\t%s\n",
                                     DATE_FORMAT.format(new Date()),
-                                    location, tweetID, screenName, tweet.getText().replaceAll("\n", "    ")
+                                    location, tweetID, screenName, getTweetTextOneLine(tweet)
                             ));
                 } catch (URISyntaxException e) {
                     e.printStackTrace(System.err);
@@ -231,9 +231,15 @@ public class Main {
         System.out.println("We are DONE!");
     }
 
-    private static void writeSkipped(BufferedWriter skippedTweetsWriter, long tweetID, String format, String... params) throws IOException {
-        skippedTweetsWriter.write(String.format("%s %d:", DATE_FORMAT.format(new Date()), tweetID));
+    private static String getTweetTextOneLine(Status tweet) {
+        return tweet.getText().replaceAll("\n", "    ");
+    }
+
+    private static void writeSkipped(BufferedWriter skippedTweetsWriter, Status tweet, String format, String... params) throws IOException {
+        skippedTweetsWriter.write(String.format("%s %d:", DATE_FORMAT.format(new Date()), tweet.getId()));
         skippedTweetsWriter.write(String.format(format, (Object[])params)); //cast, so it knows it is params array
+        skippedTweetsWriter.write("      ");
+        skippedTweetsWriter.write(getTweetTextOneLine(tweet));
         skippedTweetsWriter.newLine();
     }
 
