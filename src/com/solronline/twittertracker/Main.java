@@ -65,13 +65,15 @@ public class Main {
 
         Pattern includeTermsRegex = null;
         if (searchQuery != null) {
-            // generate includeFilter from normal keyworks in the search, as it does not seem to search text only
-            String[] terms = searchQuery.split(" ");
+            // generate includeFilter from normal keywords in the search, as it does not seem to search text only
+            String[] terms = searchQuery.split("[ ()\"]");
             StringBuilder regex = new StringBuilder();
             for (String term : terms) {
-                if (term.indexOf(':')<0) {
-                    regex.append(term).append('|');
-                }
+                if (term.indexOf(':')>=0) continue; //filter term
+                if (term.length() == 0) continue; //empty
+                if (term.equals("OR")) continue; //it was a query operator
+
+                regex.append(term).append('|'); //we got this far
             }
             if (regex.length()>0){
                 includeTermsRegex = Pattern.compile(regex.substring(0, regex.length()-1), Pattern.CASE_INSENSITIVE);
