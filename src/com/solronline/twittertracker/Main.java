@@ -43,6 +43,7 @@ public class Main {
 
 
         System.out.println("Tracking tweets using files in the directory: " + workingPath);
+        System.out.println("Version: 6 December 2018");
 
 
         long lastID;
@@ -160,7 +161,8 @@ public class Main {
 
 
             //deal with URLs
-            System.out.printf("Accept tweet @%s: '%s'\n", tweet.getUser().getScreenName(), tweet.getText());
+            System.out.printf("Accept tweet @%s: '%s' (truncated: %s)\n", tweet.getUser().getScreenName(), tweet.getText(), tweet.isTruncated());
+
             URLEntity[] urlEntities = tweet.getURLEntities();
             for (URLEntity urlEntity : urlEntities) {
                 HttpClientContext context = HttpClientContext.create();
